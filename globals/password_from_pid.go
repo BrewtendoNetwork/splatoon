@@ -27,6 +27,26 @@ func PasswordFromPID(pid types.PID) (string, uint32) {
 	return response.Password, 0
 }
 
+func NEXAccountFromUsername(username string) (types.PID, string, uint32) {
+	usernameInt, err := strconv.ParseUint(username, 10, 32)
+	if err != nil {
+		Logger.Error(err.Error())
+		return types.NewPID(0), "", nex.ResultCodes.RendezVous.InvalidUsername
+	}
+
+	ctx := metadata.NewOutgoingContext(context.Background(), common_globals.GRPCAccountCommonMetadata)
+
+	response, err := common_globals.GRPCAccountClient.GetNEXData(ctx, &pb.GetNEXDataRequest{Pid: uint32(usernameInt)})
+	if err != nil {
+		Logger.Error(err.Error())
+		return types.NewPID(0), "", nex.ResultCodes.RendezVous.InvalidUsername
+	}
+
+	Logger.Infof("Username %s resolved to PID %d", username, response.Pid)
+
+	return types.NewPID(uint64(response.Pid)), response.Password, 0
+}
+
 // This is the same format as nex-viewer's settings.json
 type jsonAccount struct {
 	Platform string  `json:"platform"`
